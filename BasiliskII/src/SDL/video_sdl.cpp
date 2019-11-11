@@ -1,5 +1,5 @@
 /*
- *  video_sdl.cpp - Video/graphics emulation, SDL specific stuff
+ *  video_sdl.cpp - Video/graphics emulation, SDL 1.x specific stuff
  *
  *  Basilisk II (C) 1997-2008 Christian Bauer
  *
@@ -43,6 +43,8 @@
 #include "sysdeps.h"
 
 #include <SDL.h>
+#if (SDL_COMPILEDVERSION < SDL_VERSIONNUM(2, 0, 0))
+
 #include <SDL_mutex.h>
 #include <SDL_thread.h>
 #include <errno.h>
@@ -86,7 +88,7 @@ static int display_type = DISPLAY_WINDOW;			// See enum above
 #endif
 
 // Constants
-#ifdef WIN32
+#if defined(WIN32) || __MACOSX__
 const char KEYCODE_FILE_NAME[] = "BasiliskII_keycodes";
 #else
 const char KEYCODE_FILE_NAME[] = DATADIR "/keycodes";
@@ -455,15 +457,9 @@ static inline int sdl_display_height(void)
 	return height;
 }
 
-// Check wether specified mode is available
+// Check whether specified mode is available
 static bool has_mode(int type, int width, int height, int depth)
 {
-#ifdef SHEEPSHAVER
-	// Filter out Classic resolutions
-	if (width == 512 && height == 384)
-		return false;
-#endif
-
 	// Filter out out-of-bounds resolutions
 	if (width > sdl_display_width() || height > sdl_display_height())
 		return false;
@@ -582,6 +578,16 @@ static void migrate_screen_prefs(void)
 		PrefsReplaceString("screen", str);
 	}
 #endif
+}
+
+void update_sdl_video(SDL_Surface *screen, Sint32 x, Sint32 y, Sint32 w, Sint32 h)
+{
+	SDL_UpdateRect(screen, x, y, w, h);
+}
+
+void update_sdl_video(SDL_Surface *screen, int numrects, SDL_Rect *rects)
+{
+	SDL_UpdateRects(screen, numrects, rects);
 }
 
 
@@ -1042,6 +1048,19 @@ bool VideoInit(bool classic)
 		int h;
 		int resolution_id;
 	}
+#ifdef SHEEPSHAVER
+	// Omit Classic resolutions
+	video_modes[] = {
+		{   -1,   -1, 0x80 },
+		{  640,  480, 0x81 },
+		{  800,  600, 0x82 },
+		{ 1024,  768, 0x83 },
+		{ 1152,  870, 0x84 },
+		{ 1280, 1024, 0x85 },
+		{ 1600, 1200, 0x86 },
+		{ 0, }
+	};
+#else
 	video_modes[] = {
 		{   -1,   -1, 0x80 },
 		{  512,  384, 0x80 },
@@ -1053,6 +1072,7 @@ bool VideoInit(bool classic)
 		{ 1600, 1200, 0x86 },
 		{ 0, }
 	};
+#endif
 	video_modes[0].w = default_width;
 	video_modes[0].h = default_height;
 
@@ -2269,3 +2289,5 @@ void video_set_dirty_area(int x, int y, int w, int h)
 	// XXX handle dirty bounding boxes for non-VOSF modes
 }
 #endif
+
+#endif	// ends: SDL version check

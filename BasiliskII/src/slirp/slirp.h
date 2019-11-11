@@ -22,8 +22,6 @@ typedef char *caddr_t;
 typedef int socklen_t;
 typedef unsigned long ioctlsockopt_t;
 
-# include <windows.h>
-# include <winsock2.h>
 # include <sys/timeb.h>
 # include <iphlpapi.h>
 
@@ -139,6 +137,15 @@ typedef u_int32_t uint32;
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #endif
+
+#ifndef _P
+#ifndef NO_PROTOTYPES
+#  define   _P(x)   x
+#else
+#  define   _P(x)   ()
+#endif
+#endif
+
 
 #ifdef GETTIMEOFDAY_ONE_ARG
 #define gettimeofday(x, y) gettimeofday(x)

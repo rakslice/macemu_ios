@@ -76,7 +76,7 @@ user_string_def common_strings[] = {
 	{STR_SCSI_BUFFER_ERR, "Cannot allocate SCSI buffer (requested %d bytes). Giving up."},
 	{STR_SCSI_SG_FULL_ERR, "SCSI scatter/gather table full. Giving up."},
 
-	{STR_SMALL_RAM_WARN, "Selected less than 8MB Mac RAM, using 8MB."},
+	{STR_SMALL_RAM_WARN, "Selected less than 16MB Mac RAM, using 16MB."},
 	{STR_CANNOT_UNMOUNT_WARN, "The volume '%s' could not be unmounted. SheepShaver will not use it."},
 	{STR_CREATE_VOLUME_WARN, "Cannot create hardfile (%s)."},
 
@@ -173,6 +173,16 @@ user_string_def common_strings[] = {
 	{STR_WINDOW_TITLE, "SheepShaver"},
 	{STR_WINDOW_TITLE_FROZEN, "SheepShaver *** FROZEN ***"},
 	{STR_WINDOW_TITLE_GRABBED, "SheepShaver (mouse grabbed, press Ctrl-F5 to release)"},
+	{STR_WINDOW_TITLE_GRABBED0, "SheepShaver (mouse grabbed, press "},
+	{STR_WINDOW_TITLE_GRABBED1, "Ctrl-"},
+#ifdef __APPLE__
+	{STR_WINDOW_TITLE_GRABBED2, "Opt-"},
+	{STR_WINDOW_TITLE_GRABBED3, "Cmd-"},
+#else
+	{STR_WINDOW_TITLE_GRABBED2, "Alt-"},
+	{STR_WINDOW_TITLE_GRABBED3, "Win-"},
+#endif
+	{STR_WINDOW_TITLE_GRABBED4, "F5 to release)"},
 	{STR_WINDOW_MENU, "SheepShaver"},
 	{STR_WINDOW_ITEM_ABOUT, "About SheepShaver" ELLIPSIS},
 	{STR_WINDOW_ITEM_REFRESH, "Refresh Rate"},

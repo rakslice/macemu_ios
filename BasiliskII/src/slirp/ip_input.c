@@ -82,7 +82,7 @@ ip_input(m)
 	
 	DEBUG_CALL("ip_input");
 	DEBUG_ARG("m = %lx", (long)m);
-	DEBUG_ARG("m_len = %zu", m->m_len);
+	DEBUG_ARG("m_len = %d", m->m_len);
 
 	ipstat.ips_total++;
 	
@@ -251,7 +251,7 @@ ip_reass(register struct ip *ip, register struct ipq *fp)
 	register struct mbuf *m = dtom(ip);
 	register struct ipasfrag *q;
 	int hlen = ip->ip_hl << 2;
-	int i, next;
+	u_int16_t i, next;
 	
 	DEBUG_CALL("ip_reass");
 	DEBUG_ARG("ip = %lx", (long)ip);

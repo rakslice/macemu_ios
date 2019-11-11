@@ -283,10 +283,6 @@ int main(int argc, char **argv)
 		QuitEmulator();
 #endif
 
-	// FIXME: default to DIB driver
-	if (getenv("SDL_VIDEODRIVER") == NULL)
-	    putenv("SDL_VIDEODRIVER=windib");
-
 	// Initialize SDL system
 	int sdl_flags = 0;
 #ifdef USE_SDL_VIDEO
@@ -323,7 +319,11 @@ int main(int argc, char **argv)
 	sigsegv_set_dump_state(sigsegv_dump_state);
 
 	// Read RAM size
-	RAMSize = PrefsFindInt32("ramsize") & 0xfff00000;	// Round down to 1MB boundary
+	RAMSize = PrefsFindInt32("ramsize");
+	if (RAMSize <= 1000) {
+		RAMSize *= 1024 * 1024;
+	}
+	RAMSize &= 0xfff00000;	// Round down to 1MB boundary
 	if (RAMSize < 1024*1024) {
 		WarningAlert(GetString(STR_SMALL_RAM_WARN));
 		RAMSize = 1024*1024;
@@ -400,7 +400,7 @@ int main(int argc, char **argv)
 	emul_thread = GetCurrentThread();
 
 	// SDL threads available, start 60Hz thread
-	tick_thread_active = ((tick_thread = SDL_CreateThread(tick_func, NULL)) != NULL);
+	tick_thread_active = ((tick_thread = SDL_CreateThread(tick_func, "Redraw Thread", NULL)) != NULL);
 	if (!tick_thread_active) {
 		sprintf(str, GetString(STR_TICK_THREAD_ERR), strerror(errno));
 		ErrorAlert(str);
@@ -410,7 +410,7 @@ int main(int argc, char **argv)
 
 	// Start XPRAM watchdog thread
 	memcpy(last_xpram, XPRAM, XPRAM_SIZE);
-	xpram_thread_active = ((xpram_thread = SDL_CreateThread(xpram_func, NULL)) != NULL);
+	xpram_thread_active = ((xpram_thread = SDL_CreateThread(xpram_func, "XPRAM Thread", NULL)) != NULL);
 	D(bug("XPRAM thread started\n"));
 
 	// Start 68k and jump to ROM boot routine
@@ -625,11 +625,21 @@ static int tick_func(void *arg)
 
 #ifdef USE_SDL_VIDEO
 #include <SDL_syswm.h>
+extern SDL_Window *sdl_window;
 HWND GetMainWindowHandle(void)
 {
 	SDL_SysWMinfo wmInfo;
 	SDL_VERSION(&wmInfo.version);
-	return SDL_GetWMInfo(&wmInfo) ? wmInfo.window : NULL;
+	if (!sdl_window) {
+		return NULL;
+	}
+	if (!SDL_GetWindowWMInfo(sdl_window, &wmInfo)) {
+		return NULL;
+	}
+	if (wmInfo.subsystem != SDL_SYSWM_WINDOWS) {
+		return NULL;
+	}
+	return wmInfo.info.win.window;
 }
 #endif
 

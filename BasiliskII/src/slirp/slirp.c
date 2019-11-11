@@ -1,4 +1,7 @@
 #include "slirp.h"
+#ifdef __MINGW32__
+#include <winerror.h>
+#endif
 
 /* host address */
 struct in_addr our_addr;
@@ -84,7 +87,7 @@ static int get_dns_addr(struct in_addr *pdns_addr)
 static int get_dns_addr(struct in_addr *pdns_addr)
 {
     char buff[512];
-    char buff2[256+1];
+    char buff2[256];
     FILE *f;
     int found = 0;
     struct in_addr tmp_addr;

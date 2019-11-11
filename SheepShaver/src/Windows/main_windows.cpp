@@ -44,7 +44,7 @@
 #include "vm_alloc.h"
 #include "sigsegv.h"
 #include "util_windows.h"
-#include "kernel_windows.h"
+//#include "kernel_windows.h"
 
 #define DEBUG 0
 #include "debug.h"
@@ -207,12 +207,8 @@ int main(int argc, char **argv)
 	if (!check_drivers())
 		QuitEmulator();
 
-	// Load win32 libraries
-	KernelInit();
-
-	// FIXME: default to DIB driver
-	if (getenv("SDL_VIDEODRIVER") == NULL)
-	    putenv("SDL_VIDEODRIVER=windib");
+//	// Load win32 libraries
+//	KernelInit();
 
 	// Initialize SDL system
 	int sdl_flags = 0;
@@ -253,6 +249,10 @@ int main(int argc, char **argv)
 	TimebaseSpeed =  25000000;	// Default:  25MHz
 	PVR = 0x000c0000;			// Default: 7400 (with AltiVec)
 	D(bug("PVR: %08x (assumed)\n", PVR));
+	{
+		int pref_cpu_clock = PrefsFindInt32("cpuclock");
+		if (pref_cpu_clock) CPUClockSpeed = 1000000 * pref_cpu_clock;
+	}
 
 	// Init system routines
 	SysInit();
@@ -307,9 +307,12 @@ int main(int argc, char **argv)
 
 	// Create area for Mac RAM
 	RAMSize = PrefsFindInt32("ramsize");
-	if (RAMSize < 8*1024*1024) {
+	if (RAMSize <= 1000) {
+		RAMSize *= 1024 * 1024;
+	}
+	if (RAMSize < 16 * 1024 * 1024) {
 		WarningAlert(GetString(STR_SMALL_RAM_WARN));
-		RAMSize = 8*1024*1024;
+		RAMSize = 16 * 1024 * 1024;
 	}
 	RAMBase = 0;
 	if (vm_mac_acquire(RAMBase, RAMSize) < 0) {
@@ -446,8 +449,8 @@ static void Quit(void)
 	// Exit preferences
 	PrefsExit();
 
-	// Release win32 libraries
-	KernelExit();
+//	// Release win32 libraries
+//	KernelExit();
 
 #ifdef ENABLE_MON
 	// Exit mon
@@ -770,11 +773,21 @@ void SheepMem::Exit(void)
 
 #ifdef USE_SDL_VIDEO
 #include <SDL_syswm.h>
+extern SDL_Window *sdl_window;
 HWND GetMainWindowHandle(void)
 {
 	SDL_SysWMinfo wmInfo;
 	SDL_VERSION(&wmInfo.version);
-	return SDL_GetWMInfo(&wmInfo) ? wmInfo.window : NULL;
+	if (!sdl_window) {
+		return NULL;
+	}
+	if (!SDL_GetWindowWMInfo(sdl_window, &wmInfo)) {
+		return NULL;
+	}
+	if (wmInfo.subsystem != SDL_SYSWM_WINDOWS) {
+		return NULL;
+	}
+	return wmInfo.info.win.window;
 }
 #endif
 

@@ -30,6 +30,8 @@
 
 #include <unistd.h>
 
+#include "SDL.h"
+
 // NSInteger was added in 10.5 SDK.
 #if MAC_OS_X_VERSION_MIN_REQUIRED < 1050
   #if __LP64__ || NS_BUILD_32_LIKE_64
@@ -143,8 +145,10 @@ static NSString *getStringFromPrefs(const char *key)
   [romFile setStringValue: getStringFromPrefs("rom") ];
   [unixRoot setStringValue: getStringFromPrefs("extfs") ];
   [disableCdrom setIntValue: PrefsFindBool("nocdrom") ];
-  [ramSize setIntValue: PrefsFindInt32("ramsize") / (1024*1024) ];
-  [ramSizeStepper setIntValue: PrefsFindInt32("ramsize") / (1024*1024) ];
+  int ramsize = PrefsFindInt32("ramsize");
+  if (ramsize > 1000) ramsize >>= 20;
+  [ramSize setIntValue: ramsize ];
+  [ramSizeStepper setIntValue: ramsize ];
 
   int display_type = 0;
   int dis_width = 640;
@@ -159,8 +163,8 @@ static NSString *getStringFromPrefs(const char *key)
   }
 
   [videoType selectItemAtIndex: display_type ];
-  [width setIntValue: dis_width ];
-  [height setIntValue: dis_height ];
+  [width setStringValue:[NSString stringWithFormat:@"%d", dis_width]];
+  [height setStringValue:[NSString stringWithFormat:@"%d", dis_height]];
 
   int frameskip = PrefsFindInt32("frameskip");
   int item = -1;
@@ -476,6 +480,10 @@ static NSString *makeRelativeIfNecessary(NSString *path)
   [[self window] close];
   [NSApp stopModal];
   cancelWasClicked = NO;
+
+  // quit
+  SDL_Event event = { .type = SDL_QUIT };
+  SDL_PushEvent(&event);
 }
 
 - (BOOL) cancelWasClicked
