@@ -93,8 +93,19 @@ static int get_dns_addr(struct in_addr *pdns_addr)
     struct in_addr tmp_addr;
     
     f = fopen("/etc/resolv.conf", "r");
-    if (!f)
+    if (!f) {
+#ifndef __BIND_NOSTATIC
+        if ((_res.options & RES_INIT) == 0)
+            res_init();
+        if (_res.nscount < 1)
+            return -1;
+        *pdns_addr = _res.nsaddr_list[0].sin_addr;
+        memcpy(pdns_addr, &_res.nsaddr_list[0].sin_addr, sizeof(struct in_addr));
+        return 0;
+#else
         return -1;
+#endif
+    }
 
     lprint("IP address of your DNS(s): ");
     while (fgets(buff, 512, f) != NULL) {

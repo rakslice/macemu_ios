@@ -1,0 +1,112 @@
+//
+//  B2ScreenView.m
+//  BasiliskII
+//
+//  Created by Jesús A. Álvarez on 09/03/2014.
+//  Copyright (c) 2014 namedfork. All rights reserved.
+//
+
+#import "B2ScreenView.h"
+#include "sysdeps.h"
+#include "video.h"
+#import "B2AppDelegate.h"
+
+B2ScreenView *sharedScreenView = nil;
+
+@implementation B2ScreenView
+{
+    CGImageRef screenImage;
+    CALayer *videoLayer;
+}
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    sharedScreenView = self;
+    videoLayer = [CALayer layer];
+    [self.layer addSublayer:videoLayer];
+}
+
+- (BOOL)hasRetinaVideoMode {
+    return [UIDevice currentDevice].userInterfaceIdiom != UIUserInterfaceIdiomPad && (int)[UIScreen mainScreen].scale >= 2;
+}
+
+- (void)initVideoModes {
+    NSMutableArray *videoModes = [[NSMutableArray alloc] initWithCapacity:8];
+    CGSize screenSize = [UIScreen mainScreen].bounds.size;
+    if (screenSize.width < screenSize.height) {
+        auto swp = screenSize.width;
+        screenSize.width = screenSize.height;
+        screenSize.height = swp;
+    }
+    CGSize landscapeScreenSize = screenSize;
+    CGSize portraitScreenSize = CGSizeMake(screenSize.height, screenSize.width);
+    if (screenSize.width == 812.0 && screenSize.height == 375.0) {
+        landscapeScreenSize = CGSizeMake(752.0, 354.0);
+        portraitScreenSize = CGSizeMake(375.0, 734.0);
+    }
+    
+    // current screen size
+    [[NSUserDefaults standardUserDefaults] registerDefaults:@{@"videoDepth": @(8), @"videoSize": NSStringFromCGSize(screenSize)}];
+    [videoModes addObject:[NSValue valueWithCGSize:landscapeScreenSize]];
+    [videoModes addObject:[NSValue valueWithCGSize:portraitScreenSize]];
+    if ([self hasRetinaVideoMode]) {
+        [videoModes addObject:[NSValue valueWithCGSize:CGSizeMake(landscapeScreenSize.width * 2, landscapeScreenSize.height * 2)]];
+        [videoModes addObject:[NSValue valueWithCGSize:CGSizeMake(portraitScreenSize.width * 2, portraitScreenSize.height * 2)]];
+    }
+    
+    // default resolutions
+    [videoModes addObject:[NSValue valueWithCGSize:CGSizeMake(512, 384)]];
+    [videoModes addObject:[NSValue valueWithCGSize:CGSizeMake(640, 480)]];
+    [videoModes addObject:[NSValue valueWithCGSize:CGSizeMake(800, 600)]];
+    [videoModes addObject:[NSValue valueWithCGSize:CGSizeMake(832, 624)]];
+    if (screenSize.width > 1024) {
+        [videoModes addObject:[NSValue valueWithCGSize:CGSizeMake(1024, 768)]];
+    }
+    _videoModes = [NSArray arrayWithArray:videoModes];
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        [self initVideoModes];
+    });
+    if (_screenSize.width > 0.0) {
+        [self setScreenSize:_screenSize];
+    }
+}
+
+- (CGRect)_threadsafeBounds {
+    if ([NSThread isMainThread]) {
+        return self.bounds;
+    } else {
+        __block CGRect bounds;
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            bounds = self.bounds;
+        });
+        return bounds;
+    }
+}
+
+- (void)setScreenSize:(CGSize)screenSize {
+    _screenSize = screenSize;
+    CGRect viewBounds = [self _threadsafeBounds];
+    CGFloat screenScale = MAX(screenSize.width / viewBounds.size.width, screenSize.height / viewBounds.size.height);
+    _screenBounds = CGRectMake(0, 0, screenSize.width / screenScale, screenSize.height / screenScale);
+    _screenBounds.origin.x = (viewBounds.size.width - _screenBounds.size.width)/2;
+    _screenBounds = CGRectIntegral(_screenBounds);
+    videoLayer.frame = _screenBounds;
+    BOOL scaleIsIntegral = (floor(screenScale) == screenScale);
+    NSString *filter = scaleIsIntegral ? kCAFilterNearest : kCAFilterLinear;
+    videoLayer.magnificationFilter = filter;
+    videoLayer.minificationFilter = filter;
+}
+
+- (void)updateImage:(CGImageRef)newImage {
+    CGImageRef oldImage = screenImage;
+    screenImage = CGImageRetain(newImage);
+    CGImageRelease(oldImage);
+    [videoLayer performSelectorOnMainThread:@selector(setContents:) withObject:(__bridge id)screenImage waitUntilDone:NO];
+}
+
+@end

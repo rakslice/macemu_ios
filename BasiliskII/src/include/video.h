@@ -83,9 +83,9 @@ const char * NameOfDepth(video_depth depth);
 inline uint32 TrivialBytesPerRow(uint32 width, video_depth depth)
 {
 	switch (depth) {
-		case VDEPTH_1BIT: return width / 8;
-		case VDEPTH_2BIT: return width / 4;
-		case VDEPTH_4BIT: return width / 2;
+		case VDEPTH_1BIT: return (width + 7) / 8;
+		case VDEPTH_2BIT: return (width + 3) / 4;
+		case VDEPTH_4BIT: return (width + 1) / 2;
 		case VDEPTH_8BIT: return width;
 		case VDEPTH_16BIT: return width * 2;
 		case VDEPTH_32BIT: return width * 4;
