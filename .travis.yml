@@ -19,4 +19,4 @@ xcode_project: BasiliskII/src/iOS/BasiliskII.xcodeproj
 
 #xcode_destination: platform=iOS Simulator,OS=9.3,name=?
 
-xcode_sdk=iphonesimulator12.2
+xcode_sdk: iphonesimulator12.2
